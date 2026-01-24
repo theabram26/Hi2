@@ -41,24 +41,34 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Google OAuth Strategy
-const getCallbackURL = () => {
-  if (process.env.GOOGLE_CALLBACK_URL) {
-    return process.env.GOOGLE_CALLBACK_URL;
-  }
-  const baseURL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
-  const callbackURL = `${baseURL}/api/auth/google/callback`;
-  console.log('Google OAuth Callback URL:', callbackURL);
-  return callbackURL;
-};
+// Google OAuth Strategy - only initialize if credentials are provided
+const googleClientID = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID || '',
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-  callbackURL: getCallbackURL()
-}, (accessToken, refreshToken, profile, done) => {
-  return done(null, profile);
-}));
+if (googleClientID && googleClientSecret) {
+  const getCallbackURL = () => {
+    if (process.env.GOOGLE_CALLBACK_URL) {
+      return process.env.GOOGLE_CALLBACK_URL;
+    }
+    const baseURL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+    const callbackURL = `${baseURL}/api/auth/google/callback`;
+    console.log('Google OAuth Callback URL:', callbackURL);
+    return callbackURL;
+  };
+
+  passport.use(new GoogleStrategy({
+    clientID: googleClientID,
+    clientSecret: googleClientSecret,
+    callbackURL: getCallbackURL()
+  }, (accessToken, refreshToken, profile, done) => {
+    return done(null, profile);
+  }));
+
+  console.log('Google OAuth configured successfully');
+} else {
+  console.warn('WARNING: Google OAuth credentials not found. Authentication will not work.');
+  console.warn('Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.');
+}
 
 // Serialize user for session
 passport.serializeUser((user, done) => {
@@ -113,19 +123,30 @@ const scheduleNextReset = () => {
 // Start the reset schedule
 scheduleNextReset();
 
-// Authentication routes
-app.get('/api/auth/google', passport.authenticate('google', {
-  scope: ['profile', 'email']
-}));
+// Authentication routes - only register if Google OAuth is configured
+if (googleClientID && googleClientSecret) {
+  app.get('/api/auth/google', passport.authenticate('google', {
+    scope: ['profile', 'email']
+  }));
 
-app.get('/api/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req, res) => {
-    // Redirect to frontend after successful login
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}?auth=success`);
-  }
-);
+  app.get('/api/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    (req, res) => {
+      // Redirect to frontend after successful login
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}?auth=success`);
+    }
+  );
+} else {
+  // Provide error endpoints if OAuth is not configured
+  app.get('/api/auth/google', (req, res) => {
+    res.status(503).json({ error: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.' });
+  });
+
+  app.get('/api/auth/google/callback', (req, res) => {
+    res.status(503).json({ error: 'Google OAuth is not configured.' });
+  });
+}
 
 app.get('/api/auth/logout', (req, res) => {
   req.logout((err) => {

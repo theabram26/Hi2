@@ -75,6 +75,32 @@ The frontend will run on `http://localhost:3000`
 
 ## Deployment to Railway
 
+### Setting Up Environment Variables in Railway
+
+1. Go to your Railway project dashboard
+2. Click on your backend service
+3. Go to the **Variables** tab
+4. Add the following environment variables:
+
+**Required Variables:**
+- `GOOGLE_CLIENT_ID`: Your Google OAuth Client ID
+- `GOOGLE_CLIENT_SECRET`: Your Google OAuth Client Secret
+- `SESSION_SECRET`: A random secret key for session encryption (generate a strong random string)
+- `FRONTEND_URL`: Your frontend URL (e.g., `https://your-frontend.railway.app` or `http://localhost:3000` for local)
+- `BACKEND_URL`: Your backend URL (e.g., `https://your-backend.railway.app`)
+
+**Optional Variables:**
+- `GOOGLE_CALLBACK_URL`: Full callback URL (if not set, will be constructed from BACKEND_URL)
+- `NODE_ENV`: Set to `production` for production deployment
+- `PORT`: Port number (Railway sets this automatically)
+
+**Important:** After setting up Google OAuth credentials, make sure to add your Railway callback URL to Google Cloud Console:
+- Go to [Google Cloud Console](https://console.cloud.google.com/)
+- Navigate to **APIs & Services** → **Credentials**
+- Click on your OAuth 2.0 Client ID
+- Under **Authorized redirect URIs**, add: `https://your-backend.railway.app/api/auth/google/callback`
+- Replace `your-backend.railway.app` with your actual Railway backend URL
+
 ### Option 1: Deploy Backend and Frontend Separately
 
 #### Backend Deployment:
