@@ -17,14 +17,21 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS configuration - allow credentials for cookies
+// Determine if frontend and backend are on the same origin
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-app.use(cors({
-  origin: frontendUrl,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+const backendUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+const isSameOrigin = frontendUrl === backendUrl || 
+  (new URL(frontendUrl).origin === new URL(backendUrl).origin);
+
+// CORS configuration - only use if frontend and backend are on different origins
+if (!isSameOrigin) {
+  app.use(cors({
+    origin: frontendUrl,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
+}
 app.use(express.json());
 app.use(cookieParser());
 
@@ -38,7 +45,7 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Allow cross-site in production
+    sameSite: isSameOrigin ? 'lax' : (process.env.NODE_ENV === 'production' ? 'none' : 'lax')
   }
 }));
 
@@ -130,9 +137,21 @@ if (googleClientID && googleClientSecret) {
   app.get('/api/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/login' }),
     (req, res) => {
-      // Redirect to frontend after successful login
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      res.redirect(`${frontendUrl}?auth=success`);
+      // Debug: Log successful authentication
+      console.log('OAuth callback - User authenticated:', req.user?.displayName);
+      console.log('OAuth callback - Session ID:', req.sessionID);
+      
+      // Save session before redirecting
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.status(500).json({ error: 'Failed to save session' });
+        }
+        console.log('Session saved successfully, redirecting to frontend');
+        // Redirect to frontend after successful login
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.redirect(`${frontendUrl}?auth=success`);
+      });
     }
   );
 } else {
@@ -157,6 +176,11 @@ app.get('/api/auth/logout', (req, res) => {
 });
 
 app.get('/api/auth/status', (req, res) => {
+  // Debug: Log session info
+  console.log('Auth status check - Session ID:', req.sessionID);
+  console.log('Auth status check - Is authenticated:', req.isAuthenticated());
+  console.log('Auth status check - User:', req.user ? 'Present' : 'Not present');
+  
   if (req.isAuthenticated()) {
     res.json({
       authenticated: true,

@@ -18,14 +18,18 @@ function App() {
   // Check authentication status
   const checkAuth = async () => {
     try {
+      console.log('Checking auth status...');
       const response = await fetch(`${apiUrl}/auth/status`, {
         credentials: 'include',
         cache: 'no-store' // Don't cache auth status
       });
       const data = await response.json();
+      console.log('Auth status response:', data);
       if (data.authenticated) {
+        console.log('User authenticated:', data.user);
         setUser(data.user);
       } else {
+        console.log('User not authenticated');
         setUser(null);
       }
     } catch (err) {
