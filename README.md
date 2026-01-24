@@ -20,6 +20,8 @@ A simple full-stack Hello World application with a Node.js/Express backend and a
 
 - **Backend**: Express server with `/api/hello` endpoint
 - **Frontend**: React app that fetches and displays the message
+- **Google Authentication**: OAuth 2.0 authentication with Google
+- **Checklist**: Protected checklist feature with auto-reset
 - **CORS**: Enabled for cross-origin requests
 - **Railway Ready**: Simple structure for easy deployment
 
@@ -35,6 +37,26 @@ A simple full-stack Hello World application with a Node.js/Express backend and a
 1. Install dependencies for both backend and frontend:
 ```bash
 npm run install:all
+```
+
+2. Set up Google OAuth credentials:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select an existing one
+   - Enable the Google+ API
+   - Go to "Credentials" → "Create Credentials" → "OAuth client ID"
+   - Choose "Web application"
+   - Add authorized redirect URIs:
+     - For local development: `http://localhost:3001/api/auth/google/callback`
+     - For production: `https://your-backend-url.railway.app/api/auth/google/callback`
+   - Copy the Client ID and Client Secret
+
+3. Create a `.env` file in the `backend` directory:
+```env
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+SESSION_SECRET=your-random-session-secret-key
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:3001
 ```
 
 2. Start the backend server (in one terminal):
@@ -80,15 +102,33 @@ The frontend will run on `http://localhost:3000`
 
 ### Environment Variables
 
-For production, set the following environment variable:
-- `VITE_API_URL`: The URL of your backend API (e.g., `https://your-backend.railway.app`)
+#### Backend Environment Variables:
+- `GOOGLE_CLIENT_ID`: Your Google OAuth Client ID
+- `GOOGLE_CLIENT_SECRET`: Your Google OAuth Client Secret
+- `SESSION_SECRET`: A random secret key for session encryption (use a strong random string)
+- `FRONTEND_URL`: Frontend URL (e.g., `http://localhost:3000` for dev, `https://your-frontend.railway.app` for prod)
+- `BACKEND_URL`: Backend URL (e.g., `http://localhost:3001` for dev, `https://your-backend.railway.app` for prod)
+- `GOOGLE_CALLBACK_URL`: (Optional) Full callback URL. If not set, will be constructed from BACKEND_URL
+- `NODE_ENV`: Set to `production` for production deployment
+
+#### Frontend Environment Variables:
+- `VITE_API_URL`: The URL of your backend API (e.g., `http://localhost:3001` for dev, `https://your-backend.railway.app` for prod)
 
 The frontend will use this to fetch data from the backend.
 
 ## API Endpoints
 
+### Public Endpoints:
 - `GET /api/hello` - Returns a JSON message: `{ "message": "Hello World from Express!" }`
 - `GET /health` - Health check endpoint
+- `GET /api/auth/google` - Initiates Google OAuth login
+- `GET /api/auth/google/callback` - Google OAuth callback (handled automatically)
+- `GET /api/auth/status` - Check authentication status
+- `GET /api/auth/logout` - Logout user
+
+### Protected Endpoints (require authentication):
+- `GET /api/checklist` - Get checklist state
+- `PUT /api/checklist` - Update checklist item
 
 ## Technologies Used
 

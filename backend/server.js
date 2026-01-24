@@ -2,6 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import session from 'express-session';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import cookieParser from 'cookie-parser';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,9 +17,65 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Enable CORS for frontend
-app.use(cors());
+// CORS configuration - allow credentials for cookies
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
+
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Google OAuth Strategy
+const getCallbackURL = () => {
+  if (process.env.GOOGLE_CALLBACK_URL) {
+    return process.env.GOOGLE_CALLBACK_URL;
+  }
+  const baseURL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+  const callbackURL = `${baseURL}/api/auth/google/callback`;
+  console.log('Google OAuth Callback URL:', callbackURL);
+  return callbackURL;
+};
+
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID || '',
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  callbackURL: getCallbackURL()
+}, (accessToken, refreshToken, profile, done) => {
+  return done(null, profile);
+}));
+
+// Serialize user for session
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
+
+// Authentication middleware
+const isAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: 'Unauthorized' });
+};
 
 // Checklist state storage
 let checklistState = {
@@ -49,16 +113,56 @@ const scheduleNextReset = () => {
 // Start the reset schedule
 scheduleNextReset();
 
-// Get checklist state
-app.get('/api/checklist', (req, res) => {
+// Authentication routes
+app.get('/api/auth/google', passport.authenticate('google', {
+  scope: ['profile', 'email']
+}));
+
+app.get('/api/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res) => {
+    // Redirect to frontend after successful login
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}?auth=success`);
+  }
+);
+
+app.get('/api/auth/logout', (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Logout failed' });
+    }
+    req.session.destroy();
+    res.json({ success: true, message: 'Logged out successfully' });
+  });
+});
+
+app.get('/api/auth/status', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({
+      authenticated: true,
+      user: {
+        id: req.user.id,
+        displayName: req.user.displayName,
+        email: req.user.emails?.[0]?.value,
+        photo: req.user.photos?.[0]?.value
+      }
+    });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+// Get checklist state (protected)
+app.get('/api/checklist', isAuthenticated, (req, res) => {
   res.json({
     ...checklistState,
     lastResetTime
   });
 });
 
-// Update checklist item
-app.put('/api/checklist', (req, res) => {
+// Update checklist item (protected)
+app.put('/api/checklist', isAuthenticated, (req, res) => {
   const { item, checked } = req.body;
   
   if (item && typeof checked === 'boolean' && checklistState.hasOwnProperty(item)) {
