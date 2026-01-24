@@ -45,6 +45,16 @@ app.use(passport.session());
 const googleClientID = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
+// Debug: Log environment variable status (for troubleshooting)
+console.log('=== Environment Variables Check ===');
+console.log('PORT:', process.env.PORT || 'NOT SET');
+console.log('GOOGLE_CLIENT_ID:', googleClientID ? `SET (${googleClientID.substring(0, 20)}...)` : 'NOT SET');
+console.log('GOOGLE_CLIENT_SECRET:', googleClientSecret ? 'SET (hidden)' : 'NOT SET');
+console.log('BACKEND_URL:', process.env.BACKEND_URL || 'NOT SET');
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL || 'NOT SET');
+console.log('NODE_ENV:', process.env.NODE_ENV || 'NOT SET');
+console.log('===================================');
+
 if (googleClientID && googleClientSecret) {
   const getCallbackURL = () => {
     if (process.env.GOOGLE_CALLBACK_URL) {
@@ -208,6 +218,21 @@ app.get('/api/hello', (req, res) => {
 // Health check endpoint for Railway
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Debug endpoint to check environment variables (remove in production if needed)
+app.get('/api/debug/env', (req, res) => {
+  res.json({
+    port: process.env.PORT,
+    googleClientID: process.env.GOOGLE_CLIENT_ID ? `${process.env.GOOGLE_CLIENT_ID.substring(0, 20)}...` : 'NOT SET',
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ? 'SET (hidden)' : 'NOT SET',
+    backendURL: process.env.BACKEND_URL || 'NOT SET',
+    frontendURL: process.env.FRONTEND_URL || 'NOT SET',
+    nodeEnv: process.env.NODE_ENV || 'NOT SET',
+    allEnvKeys: Object.keys(process.env).filter(key => 
+      key.includes('GOOGLE') || key.includes('SESSION') || key.includes('FRONTEND') || key.includes('BACKEND')
+    )
+  });
 });
 
 // Serve static files from the React app (only in production)
