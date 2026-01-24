@@ -38,7 +38,7 @@ app.use(cookieParser());
 // Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-  resave: false,
+  resave: true, // Changed to true to ensure session is saved
   saveUninitialized: false,
   name: 'sessionId', // Custom session name
   cookie: {
@@ -135,13 +135,17 @@ if (googleClientID && googleClientSecret) {
   }));
 
   app.get('/api/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login' }),
+    passport.authenticate('google', { 
+      failureRedirect: '/login',
+      session: true // Ensure session is used
+    }),
     (req, res) => {
       // Debug: Log successful authentication
       console.log('OAuth callback - User authenticated:', req.user?.displayName);
       console.log('OAuth callback - Session ID:', req.sessionID);
+      console.log('OAuth callback - Is authenticated:', req.isAuthenticated());
       
-      // Save session before redirecting
+      // Ensure session is saved before redirect
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
