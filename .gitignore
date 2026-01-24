@@ -11,6 +11,8 @@ frontend/build/
 .env
 .env.local
 .env.production
+process.env
+backend/process.env
 
 # IDE
 .vscode/
