@@ -19,7 +19,8 @@ function App() {
   const checkAuth = async () => {
     try {
       const response = await fetch(`${apiUrl}/auth/status`, {
-        credentials: 'include'
+        credentials: 'include',
+        cache: 'no-store' // Don't cache auth status
       });
       const data = await response.json();
       if (data.authenticated) {
@@ -29,6 +30,7 @@ function App() {
       }
     } catch (err) {
       console.error('Auth check failed:', err);
+      setUser(null);
     } finally {
       setAuthLoading(false);
     }
@@ -127,10 +129,13 @@ function App() {
     // Check auth status on mount
     checkAuth();
     
-    // Handle auth success redirect
+    // Handle auth success redirect - wait a bit for session to be established
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('auth') === 'success') {
-      checkAuth();
+      // Wait a moment for the session cookie to be set, then check auth
+      setTimeout(() => {
+        checkAuth();
+      }, 500);
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
