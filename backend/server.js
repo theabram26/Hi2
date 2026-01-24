@@ -36,8 +36,11 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Session configuration
+const sessionSecret = process.env.SESSION_SECRET || 'your-secret-key-change-in-production';
+console.log('SESSION_SECRET:', sessionSecret ? `${sessionSecret.substring(0, 10)}... (${sessionSecret.length} chars)` : 'NOT SET');
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  secret: sessionSecret,
   resave: true, // Changed to true to ensure session is saved
   saveUninitialized: false,
   name: 'sessionId', // Custom session name
