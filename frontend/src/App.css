@@ -96,6 +96,13 @@ h1 {
   font-size: 1.1rem;
 }
 
+.build-date {
+  margin-top: 20px;
+  font-size: 0.85rem;
+  color: #999;
+  font-style: italic;
+}
+
 .checklist {
   display: flex;
   flex-direction: column;

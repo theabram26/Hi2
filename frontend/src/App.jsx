@@ -14,6 +14,10 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
 
   const apiUrl = import.meta.env.VITE_API_URL || '/api';
+  
+  // Build date (injected at build time)
+  // @ts-ignore
+  const buildDate = typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : new Date().toISOString();
 
   // Check authentication status
   const checkAuth = async () => {
@@ -199,6 +203,13 @@ function App() {
         {!user ? (
           <div className="login-prompt">
             <p>Please sign in with Google to access the checklist.</p>
+            <p className="build-date">
+              Build date: {new Date(buildDate).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </p>
           </div>
         ) : (
           <>
