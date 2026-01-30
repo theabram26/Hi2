@@ -167,7 +167,7 @@ if (googleClientID && googleClientSecret) {
         // Redirect to frontend root (will show checklist if authenticated)
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         console.log('frondend URL:', frontendUrl);
-        res.redirect(`${frontendUrl}?auth=success`);
+        res.redirect(`${frontendUrl}/api/checklist?auth=success`);
       });
     }
   );
