@@ -155,17 +155,6 @@ if (googleClientID && googleClientSecret) {
       console.log('OAuth callback - Is authenticated:', req.isAuthenticated());
       console.log('OAuth callback - User object:', req.user ? JSON.stringify(req.user, null, 2) : 'No user');
       
-      // Explicitly ensure user is logged in (Passport should do this, but being explicit)
-      if (!req.isAuthenticated() && req.user) {
-        req.login(req.user, (loginErr) => {
-          if (loginErr) {
-            console.error('Login error:', loginErr);
-            return res.status(500).json({ error: 'Failed to login' });
-          }
-          console.log('User explicitly logged in via req.login()');
-        });
-      }
-      
       // Ensure session is saved before redirect
       req.session.save((err) => {
         if (err) {
@@ -177,6 +166,7 @@ if (googleClientID && googleClientSecret) {
         console.log('Is authenticated after save:', req.isAuthenticated());
         // Redirect to frontend root (will show checklist if authenticated)
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        console.log('frondend URL:', frontendUrl);
         res.redirect(`${frontendUrl}?auth=success`);
       });
     }
