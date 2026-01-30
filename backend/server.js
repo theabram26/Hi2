@@ -89,9 +89,14 @@ passport.deserializeUser((user, done) => {
 
 // Authentication middleware
 const isAuthenticated = (req, res, next) => {
+  console.log('Auth check - Session ID:', req.sessionID);
+  console.log('Auth check - Is authenticated:', req.isAuthenticated());
+  console.log('Auth check - User present:', !!req.user);
+  
   if (req.isAuthenticated()) {
     return next();
   }
+  console.log('Auth check - Unauthorized, returning 401');
   res.status(401).json({ error: 'Unauthorized' });
 };
 
@@ -155,7 +160,8 @@ if (googleClientID && googleClientSecret) {
           return res.status(500).json({ error: 'Failed to save session' });
         }
         console.log('Session saved successfully, redirecting to frontend');
-        // Redirect to frontend after successful login
+        console.log('Session ID after save:', req.sessionID);
+        // Redirect to frontend root (will show checklist if authenticated)
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         res.redirect(`${frontendUrl}?auth=success`);
       });
